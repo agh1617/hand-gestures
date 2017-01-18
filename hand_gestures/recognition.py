@@ -23,9 +23,6 @@ def recognize():
 
         contour = max(contours, key = lambda x: cv2.contourArea(x))
 
-        x,y,w,h = cv2.boundingRect(contour)
-        cv2.rectangle(crop_img,(x,y),(x+w,y+h),(0,0,255),0)
-
         hull = cv2.convexHull(contour)
 
         drawing = np.zeros(crop_img.shape,np.uint8)
@@ -36,40 +33,45 @@ def recognize():
         hull = cv2.convexHull(contour,returnPoints = False)
         defects = cv2.convexityDefects(contour,hull)
 
-        count_defects = 0
-        cv2.drawContours(tresh, contours, -1, (0,255,0), 3)
+        if defects is not None:
+            count_defects = 0
+            cv2.drawContours(tresh, contours, -1, (0,255,0), 3)
 
-        for i in range(defects.shape[0]):
-            s,e,f,d = defects[i,0]
+            for i in range(defects.shape[0]):
+                s,e,f,d = defects[i,0]
 
-            start = tuple(contour[s][0])
-            end = tuple(contour[e][0])
-            far = tuple(contour[f][0])
+                start = tuple(contour[s][0])
+                end = tuple(contour[e][0])
+                far = tuple(contour[f][0])
 
-            a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
-            b = math.sqrt((far[0] - start[0])**2 + (far[1] - start[1])**2)
-            c = math.sqrt((end[0] - far[0])**2 + (end[1] - far[1])**2)
+                a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
+                b = math.sqrt((far[0] - start[0])**2 + (far[1] - start[1])**2)
+                c = math.sqrt((end[0] - far[0])**2 + (end[1] - far[1])**2)
 
-            angle = math.acos((b**2 + c**2 - a**2)/(2*b*c)) * 57
+                angle = math.acos((b**2 + c**2 - a**2)/(2*b*c)) * 57
 
-            if angle <= 90:
-                count_defects += 1
-                cv2.circle(crop_img,far,1,[0,0,255],-1)
+                if angle <= 90:
+                    count_defects += 1
+                    cv2.circle(drawing,far,5,[0,0,255],-1)
 
-            cv2.line(crop_img,start,end,[0,255,0],2)
+                cv2.line(drawing,start,end,[0,255,0],2)
 
-        ellipse = cv2.fitEllipse(contour)
-        _, size, _ = ellipse
-        w,h = size
+            ellipse = cv2.fitEllipse(contour)
+            _, size, _ = ellipse
+            w,h = size
 
-        if count_defects > 0:
-            cv2.putText(crop_img,"N", (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
-        elif w/h > 0.5:
-            cv2.putText(crop_img,"K", (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
-        else:
-            cv2.putText(crop_img,"P", (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, 2)
+            text_position = (frame.shape[1] - 100,100)
 
-        cv2.imshow('Hand gesture recognition', crop_img)
+            if count_defects > 0:
+                cv2.putText(frame,"N", text_position, cv2.FONT_HERSHEY_SIMPLEX, 2, 2, 3, 5)
+            elif w/h > 0.5:
+                cv2.putText(frame,"K", text_position, cv2.FONT_HERSHEY_SIMPLEX, 2, 2, 3, 5)
+            else:
+                cv2.putText(frame,"P", text_position, cv2.FONT_HERSHEY_SIMPLEX, 2, 2, 3, 5)
+
+            frame[50:450, 50:450] = drawing
+
+        cv2.imshow('Hand gesture recognition', frame)
 
         k = cv2.waitKey(10)
         if k == 27:  # esc
